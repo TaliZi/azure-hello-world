@@ -25,7 +25,7 @@ steps:
   displayName: Build
 
 # print version to console
-- script: echo "Version: $(version)"
+- script: 'echo "Version: $(version)"'
   displayName: Print Version
 
 # publish compiled output
@@ -62,9 +62,9 @@ steps:
     publishVstsFeed: myfeed
 
 # print artifact name using branch + version
-- script: echo "Artifact: $(Build.SourceBranchName)_$(version)"
+- script: 'echo "Artifact: $(Build.SourceBranchName)_$(version)"'
   displayName: Print Artifact Name
 
 # send email with pipeline status
-- script: echo "Pipeline finished with status $(Agent.JobStatus)"
+- script: 'echo "Pipeline finished with status $(Agent.JobStatus)"'
   displayName: Send Email
