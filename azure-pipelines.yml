@@ -1,0 +1,70 @@
+trigger:
+- main
+- feature/*
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  version: 1.0.$(Build.BuildId)
+
+steps:
+
+# install .NET SDK
+- task: UseDotNet@2
+  inputs:
+    packageType: sdk
+    version: 8.0.x
+
+# restore dependencies
+- script: dotnet restore
+  displayName: Restore
+
+# build project
+- script: dotnet build --configuration Release
+  displayName: Build
+
+# print version to console
+- script: echo "Version: $(version)"
+  displayName: Print Version
+
+# publish compiled output
+- script: dotnet publish -c Release -o publish
+  displayName: Publish
+
+# upload build output to Azure Artifacts (pipeline artifact)
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: publish
+    artifact: drop
+
+# run SonarQube scan only on feature branches
+- task: SonarQubePrepare@5
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/')
+  inputs:
+    SonarQube: SonarConnection
+    scannerMode: CLI
+    configMode: manual
+    cliProjectKey: hello
+    cliProjectName: hello
+
+# create NuGet package from DLL
+- script: dotnet pack -c Release -o nupkg
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/')
+  displayName: Create NuGet
+
+# push NuGet package to Azure Artifacts feed
+- task: NuGetCommand@2
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/')
+  inputs:
+    command: push
+    packagesToPush: 'nupkg/*.nupkg'
+    publishVstsFeed: myfeed
+
+# print artifact name using branch + version
+- script: echo "Artifact: $(Build.SourceBranchName)_$(version)"
+  displayName: Print Artifact Name
+
+# send email with pipeline status
+- script: echo "Pipeline finished with status $(Agent.JobStatus)"
+  displayName: Send Email
